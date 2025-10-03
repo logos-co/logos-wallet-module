@@ -5,8 +5,10 @@
 , pkg-config
 , qt6
 , go
+, gnumake
 , logosLiblogosSrc
 , logosCppSdkSrc
+, goWalletSdkSrc
 }:
 
 let
@@ -40,6 +42,7 @@ stdenv.mkDerivation {
     pkg-config
     qt6.wrapQtAppsHook
     go
+    gnumake
   ];
 
   buildInputs = qtDeps;
@@ -50,16 +53,32 @@ stdenv.mkDerivation {
 
   postUnpack = ''
     echo "Replacing vendor dependencies with flake inputs"
-    rm -rf source/vendor/logos-liblogos source/vendor/logos-cpp-sdk
+    rm -rf source/vendor/logos-liblogos source/vendor/logos-cpp-sdk source/vendor/go-wallet-sdk
     mkdir -p source/vendor
     cp -r ${logosLiblogosSrc} source/vendor/logos-liblogos
     cp -r ${logosCppSdkSrc} source/vendor/logos-cpp-sdk
-    chmod -R u+w source/vendor/logos-liblogos source/vendor/logos-cpp-sdk
+    cp -r ${goWalletSdkSrc} source/vendor/go-wallet-sdk
+    chmod -R u+w source/vendor/logos-liblogos source/vendor/logos-cpp-sdk source/vendor/go-wallet-sdk
   '';
 
   preConfigure = ''
     echo "Building wallet library from go-wallet-sdk"
-    bash ./build_wallet_lib.sh
+    
+    # Set up Go build environment
+    export HOME=$TMPDIR
+    export GOCACHE=$TMPDIR/go-cache
+    export GOPATH=$TMPDIR/go
+    export CGO_ENABLED=1
+    mkdir -p $GOCACHE $GOPATH
+    
+    cd vendor/go-wallet-sdk
+    echo "Go version: $(go version)"
+    make build-c-lib
+    cd ../..
+    
+    mkdir -p lib
+    cp vendor/go-wallet-sdk/build/libgowalletsdk.* lib/ 2>/dev/null || true
+    echo "Wallet C library copied into lib/"
   '';
 
   cmakeFlags = [

@@ -11,8 +11,12 @@
     url = "github:logos-co/logos-cpp-sdk/65aa4a1b24692802e618b3ef0d7c4e320f5f0d99";
     flake = false;
   };
+  inputs.go-wallet-sdk = {
+    url = "github:status-im/go-wallet-sdk/de483fec457ebec76d4f6ad09f1104f0839ce47d";
+    flake = false;
+  };
 
-  outputs = { self, nixpkgs, logos-liblogos, logos-cpp-sdk }:
+  outputs = { self, nixpkgs, logos-liblogos, logos-cpp-sdk, go-wallet-sdk }:
     let
       lib = nixpkgs.lib;
       systems = [
@@ -34,6 +38,7 @@
           drv = pkgs.callPackage ./nix/package.nix {
             logosLiblogosSrc = logos-liblogos;
             logosCppSdkSrc = logos-cpp-sdk;
+            goWalletSdkSrc = go-wallet-sdk;
           };
         in
         {
@@ -61,6 +66,7 @@
         wallet-module = pkgs.callPackage ./nix/package.nix {
           logosLiblogosSrc = logos-liblogos;
           logosCppSdkSrc = logos-cpp-sdk;
+          goWalletSdkSrc = go-wallet-sdk;
         };
       });
     };
