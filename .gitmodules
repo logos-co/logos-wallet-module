@@ -1,0 +1,4 @@
+[submodule "modules/wallet_module/vendor/go-wallet-sdk"]
+	path = modules/wallet_module/vendor/go-wallet-sdk
+	url = https://github.com/status-im/go-wallet-sdk.git
+	branch = compile_c_lib

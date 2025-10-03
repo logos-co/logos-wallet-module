@@ -1,0 +1,4 @@
+vendor/go-wallet-sdk
+lib/*
+.DS_Store
+result
