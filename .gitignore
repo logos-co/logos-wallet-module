@@ -1,4 +1,6 @@
-vendor/go-wallet-sdk
-lib/*
 .DS_Store
+build
+.deps/
+vendor/*
+lib/*
 result
