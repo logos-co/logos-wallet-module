@@ -1,72 +1,83 @@
 {
-  description = "Build the Logos wallet module plugin with Nix";
+  description = "Logos Wallet Module - A wallet plugin for Logos";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-  inputs.logos-liblogos = {
-    url = "github:logos-co/logos-liblogos/49e9dfaaf793d3a60124abf3d9f830e5c63a0c3e";
-    flake = false;
-  };
-  inputs.logos-cpp-sdk = {
-    url = "github:logos-co/logos-cpp-sdk/65aa4a1b24692802e618b3ef0d7c4e320f5f0d99";
-    flake = false;
-  };
-  inputs.go-wallet-sdk = {
-    url = "github:status-im/go-wallet-sdk/de483fec457ebec76d4f6ad09f1104f0839ce47d";
-    flake = false;
+  inputs = {
+    # Follow the same nixpkgs as logos-liblogos to ensure compatibility
+    nixpkgs.follows = "logos-liblogos/nixpkgs";
+    logos-cpp-sdk.url = "github:logos-co/logos-cpp-sdk";
+    logos-liblogos.url = "github:logos-co/logos-liblogos";
+    go-wallet-sdk = {
+      url = "github:status-im/go-wallet-sdk/de483fec457ebec76d4f6ad09f1104f0839ce47d";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, logos-liblogos, logos-cpp-sdk, go-wallet-sdk }:
+  outputs = { self, nixpkgs, logos-cpp-sdk, logos-liblogos, go-wallet-sdk }:
     let
-      lib = nixpkgs.lib;
-      systems = [
-        "aarch64-darwin"
-        "x86_64-darwin"
-        "aarch64-linux"
-        "x86_64-linux"
-      ];
-      forSystems = f: lib.genAttrs systems (system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-        in
-          f pkgs
-      );
+      systems = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f {
+        pkgs = import nixpkgs { inherit system; };
+        logosSdk = logos-cpp-sdk.packages.${system}.default;
+        logosLiblogos = logos-liblogos.packages.${system}.default;
+        goWalletSdk = go-wallet-sdk;
+      });
     in
     {
-      packages = forSystems (pkgs:
+      packages = forAllSystems ({ pkgs, logosSdk, logosLiblogos, goWalletSdk }: 
         let
-          drv = pkgs.callPackage ./nix/package.nix {
-            logosLiblogosSrc = logos-liblogos;
-            logosCppSdkSrc = logos-cpp-sdk;
-            goWalletSdkSrc = go-wallet-sdk;
+          # Common configuration
+          common = import ./nix/default.nix { 
+            inherit pkgs logosSdk logosLiblogos; 
+          };
+          src = ./.;
+          
+          # Library package
+          lib = import ./nix/lib.nix { 
+            inherit pkgs common src goWalletSdk logosSdk; 
+          };
+
+          # Include package (generated headers from plugin)
+          include = import ./nix/include.nix {
+            inherit pkgs common src lib logosSdk;
+          };
+
+          # Combined package
+          combined = pkgs.symlinkJoin {
+            name = "logos-wallet-module";
+            paths = [ lib include ];
           };
         in
         {
-          default = drv;
-          wallet-module = drv;
+          # Individual outputs
+          logos-wallet-module-lib = lib;
+          logos-wallet-module-include = include;
+          
+          # Default package (combined)
+          default = combined;
         }
       );
 
-      devShells = forSystems (pkgs: {
+      devShells = forAllSystems ({ pkgs, logosSdk, logosLiblogos, goWalletSdk }: {
         default = pkgs.mkShell {
           nativeBuildInputs = [
             pkgs.cmake
             pkgs.ninja
             pkgs.pkg-config
             pkgs.go
+            pkgs.gnumake
           ];
           buildInputs = [
             pkgs.qt6.qtbase
             pkgs.qt6.qtremoteobjects
           ];
-        };
-      });
-
-      checks = forSystems (pkgs: {
-        wallet-module = pkgs.callPackage ./nix/package.nix {
-          logosLiblogosSrc = logos-liblogos;
-          logosCppSdkSrc = logos-cpp-sdk;
-          goWalletSdkSrc = go-wallet-sdk;
+          
+          shellHook = ''
+            export LOGOS_CPP_SDK_ROOT="${logosSdk}"
+            export LOGOS_LIBLOGOS_ROOT="${logosLiblogos}"
+            echo "Logos Wallet Module development environment"
+            echo "LOGOS_CPP_SDK_ROOT: $LOGOS_CPP_SDK_ROOT"
+            echo "LOGOS_LIBLOGOS_ROOT: $LOGOS_LIBLOGOS_ROOT"
+          '';
         };
       });
     };

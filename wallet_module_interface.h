@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QtCore/QObject>
-#include "../../logos-liblogos/interface.h"
+#include "interface.h"
 
 class WalletModuleInterface : public PluginInterface
 {
