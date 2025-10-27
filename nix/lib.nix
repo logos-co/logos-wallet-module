@@ -17,6 +17,12 @@ pkgs.stdenv.mkDerivation {
     # Create generated_code directory for generated files
     mkdir -p ./generated_code
     
+    # Set up vendor directory with go-wallet-sdk
+    echo "Setting up vendor directory with go-wallet-sdk"
+    mkdir -p vendor
+    cp -r ${goWalletSdk} vendor/go-wallet-sdk
+    chmod -R u+w vendor/go-wallet-sdk
+    
     # Build wallet library from go-wallet-sdk
     echo "Building wallet library from go-wallet-sdk"
     
@@ -33,8 +39,16 @@ pkgs.stdenv.mkDerivation {
     cd ../..
     
     mkdir -p lib
-    cp vendor/go-wallet-sdk/build/libgowalletsdk.* lib/ 2>/dev/null || true
+    echo "Checking what was built in go-wallet-sdk:"
+    ls -la vendor/go-wallet-sdk/build/ || echo "No build directory found"
+    cp vendor/go-wallet-sdk/build/libgowalletsdk.* lib/ 2>/dev/null || {
+      echo "Warning: No libgowalletsdk files found in vendor/go-wallet-sdk/build/"
+      echo "Contents of vendor/go-wallet-sdk/build/:"
+      ls -la vendor/go-wallet-sdk/build/ 2>/dev/null || echo "Build directory does not exist"
+    }
     echo "Wallet C library copied into lib/"
+    echo "Contents of lib/ after copy:"
+    ls -la lib/
     
     # Run logos-cpp-generator with metadata.json and --general-only flag
     echo "Running logos-cpp-generator..."
@@ -83,11 +97,25 @@ pkgs.stdenv.mkDerivation {
       exit 1
     fi
     
-    # Copy the wallet library if it exists
+    # Copy the wallet library if it exists (check both lib/ and modules/ directories)
     if [ -f lib/libgowalletsdk.dylib ]; then
       cp lib/libgowalletsdk.dylib $out/lib/
+      echo "Copied libgowalletsdk.dylib from lib/ to $out/lib/"
+    elif [ -f modules/libgowalletsdk.dylib ]; then
+      cp modules/libgowalletsdk.dylib $out/lib/
+      echo "Copied libgowalletsdk.dylib from modules/ to $out/lib/"
     elif [ -f lib/libgowalletsdk.so ]; then
       cp lib/libgowalletsdk.so $out/lib/
+      echo "Copied libgowalletsdk.so from lib/ to $out/lib/"
+    elif [ -f modules/libgowalletsdk.so ]; then
+      cp modules/libgowalletsdk.so $out/lib/
+      echo "Copied libgowalletsdk.so from modules/ to $out/lib/"
+    else
+      echo "Warning: No wallet library found in lib/ or modules/"
+      echo "Contents of lib/:"
+      ls -la lib/ 2>/dev/null || echo "lib/ directory does not exist"
+      echo "Contents of modules/:"
+      ls -la modules/ 2>/dev/null || echo "modules/ directory does not exist"
     fi
     
     # Also install the generated include files
