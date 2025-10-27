@@ -181,16 +181,16 @@ else()
 endif()
 
 install(TARGETS wallet_module_plugin
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/logos/modules
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/logos/modules
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/logos/modules
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES ${METADATA_JSON}
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/logos-wallet-module
-)
+# Install the wallet library if it exists
+if(LIBWALLET_PATH)
+    install(FILES ${LIBWALLET_PATH}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
 
-install(DIRECTORY "${PLUGINS_OUTPUT_DIR}/"
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/logos-wallet-module/generated
-    OPTIONAL
-)
+
