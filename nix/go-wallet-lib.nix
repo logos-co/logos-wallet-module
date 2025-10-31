@@ -8,9 +8,11 @@ pkgs.buildGoModule {
   
   src = goWalletSdk;
   
-  # This hash needs to be updated when dependencies change
-  # Set to an empty string or lib.fakeSha256 first, then update with the hash from the error message
-  vendorHash = null;  # Try building with null first to see if vendor directory exists
+  # Hash of the Go dependencies
+  vendorHash = "sha256-4aiUWRiXRUgLntKvOPCuR8fJpzS+OKKh5oe5B7V74j4=";
+  
+  # Ignore the existing vendor directory since it's out of sync
+  proxyVendor = true;
   
   # Build flags for C shared library
   buildPhase = ''
@@ -21,8 +23,8 @@ pkgs.buildGoModule {
     
     mkdir -p $out/lib
     
-    # Build the C shared library
-    go build -buildmode=c-shared -o $out/lib/libgowalletsdk${if pkgs.stdenv.isDarwin then ".dylib" else ".so"} ./cshared
+    # Build the C shared library using -mod=mod to ignore vendor directory
+    go build -mod=mod -buildmode=c-shared -o $out/lib/libgowalletsdk${if pkgs.stdenv.isDarwin then ".dylib" else ".so"} ./cshared
     
     runHook postBuild
   '';
