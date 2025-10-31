@@ -31,9 +31,14 @@
           };
           src = ./.;
           
+          # Build Go wallet library separately with proper dependency management
+          goWalletLib = import ./nix/go-wallet-lib.nix {
+            inherit pkgs goWalletSdk;
+          };
+          
           # Library package
           lib = import ./nix/lib.nix { 
-            inherit pkgs common src goWalletSdk logosSdk; 
+            inherit pkgs common src goWalletSdk logosSdk goWalletLib; 
           };
 
           # Include package (generated headers from plugin)
