@@ -1,5 +1,5 @@
 # Builds the logos-wallet-module library
-{ pkgs, common, src, goWalletSdk, logosSdk }:
+{ pkgs, common, src, goWalletSdk, logosSdk, goWalletLib }:
 
 pkgs.stdenv.mkDerivation {
   pname = "${common.pname}-lib";
@@ -17,37 +17,17 @@ pkgs.stdenv.mkDerivation {
     # Create generated_code directory for generated files
     mkdir -p ./generated_code
     
-    # Set up vendor directory with go-wallet-sdk
-    echo "Setting up vendor directory with go-wallet-sdk"
-    mkdir -p vendor
-    cp -r ${goWalletSdk} vendor/go-wallet-sdk
-    chmod -R u+w vendor/go-wallet-sdk
-    
-    # Build wallet library from go-wallet-sdk
-    echo "Building wallet library from go-wallet-sdk"
-    
-    # Set up Go build environment
-    export HOME=$TMPDIR
-    export GOCACHE=$TMPDIR/go-cache
-    export GOPATH=$TMPDIR/go
-    export CGO_ENABLED=1
-    mkdir -p $GOCACHE $GOPATH
-    
-    cd vendor/go-wallet-sdk
-    echo "Go version: $(go version)"
-    make build-c-lib
-    cd ../..
-    
+    # Use the prebuilt Go wallet library from goWalletLib
+    echo "Using prebuilt Go wallet library from goWalletLib"
     mkdir -p lib
-    echo "Checking what was built in go-wallet-sdk:"
-    ls -la vendor/go-wallet-sdk/build/ || echo "No build directory found"
-    cp vendor/go-wallet-sdk/build/libgowalletsdk.* lib/ 2>/dev/null || {
-      echo "Warning: No libgowalletsdk files found in vendor/go-wallet-sdk/build/"
-      echo "Contents of vendor/go-wallet-sdk/build/:"
-      ls -la vendor/go-wallet-sdk/build/ 2>/dev/null || echo "Build directory does not exist"
+    cp -L ${goWalletLib}/lib/libgowalletsdk.* lib/ || {
+      echo "Error: Could not copy prebuilt Go wallet library"
+      echo "Contents of ${goWalletLib}/lib/:"
+      ls -la ${goWalletLib}/lib/ || echo "Directory not found"
+      exit 1
     }
-    echo "Wallet C library copied into lib/"
-    echo "Contents of lib/ after copy:"
+    echo "Go wallet library copied to lib/"
+    echo "Contents of lib/:"
     ls -la lib/
     
     # Run logos-cpp-generator with metadata.json and --general-only flag
