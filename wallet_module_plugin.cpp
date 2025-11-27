@@ -15,7 +15,7 @@ WalletModulePlugin::~WalletModulePlugin()
         logosAPI = nullptr;
     }
     if (walletHandle != 0) {
-        GoWSK_CloseClient(walletHandle);
+        GoWSK_ethclient_CloseClient(walletHandle);
         walletHandle = 0;
     }
 }
@@ -44,7 +44,7 @@ bool WalletModulePlugin::initWallet(const QString &configJson)
 
     const char* url = "https://ethereum-rpc.publicnode.com";
     char* err = nullptr;
-    walletHandle = GoWSK_NewClient((char*)url, &err);
+    walletHandle = GoWSK_ethclient_NewClient((char*)url, &err);
     if (walletHandle == 0) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);
@@ -65,7 +65,7 @@ QString WalletModulePlugin::chainId(const QString &rpcUrl)
         }
     }
     char* err = nullptr;
-    char* chain = GoWSK_ChainID(walletHandle, &err);
+    char* chain = GoWSK_ethclient_ChainID(walletHandle, &err);
     if (chain == nullptr) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);
@@ -88,7 +88,7 @@ QString WalletModulePlugin::getEthBalance(const QString &rpcUrl, const QString &
     }
     QByteArray addrUtf8 = address.toUtf8();
     char* err = nullptr;
-    char* balance = GoWSK_GetBalance(walletHandle, addrUtf8.data(), &err);
+    char* balance = GoWSK_ethclient_GetBalance(walletHandle, addrUtf8.data(), &err);
     if (balance == nullptr) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);

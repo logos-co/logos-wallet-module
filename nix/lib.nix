@@ -35,7 +35,7 @@ pkgs.stdenv.mkDerivation {
     
     cd vendor/go-wallet-sdk
     echo "Go version: $(go version)"
-    make build-c-lib
+    make shared-library
     cd ../..
     
     mkdir -p lib
