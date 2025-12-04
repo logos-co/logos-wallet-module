@@ -20,6 +20,7 @@ public:
     ~WalletModulePlugin();
 
     Q_INVOKABLE bool initWallet(const QString &configJson) override;
+    Q_INVOKABLE QString rpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON) override;
     Q_INVOKABLE QString chainId(const QString &rpcUrl) override;
     Q_INVOKABLE QString getEthBalance(const QString &rpcUrl, const QString &address) override;
     Q_INVOKABLE QString getErc20Balances(const QString &rpcUrl, const QString &address, const QStringList &tokenAddresses) override;

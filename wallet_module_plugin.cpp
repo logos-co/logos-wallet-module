@@ -110,4 +110,26 @@ QString WalletModulePlugin::getErc20Balances(const QString &rpcUrl, const QStrin
     return QString();
 }
 
-
+QString WalletModulePlugin::rpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::rpcCall" << rpcUrl << method << paramsJSON;
+    Q_UNUSED(rpcUrl);
+    if (walletHandle == 0) {
+        if (!initWallet(QString())) {
+            return QString();
+        }
+    }
+    QByteArray methodUtf8 = method.toUtf8();
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* response = GoWSK_ethclient_RPCCall(walletHandle, methodUtf8.data(), paramsJsonUtf8.data(), &err);
+    if (response == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin: RpcCall error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(response);
+    GoWSK_FreeCString(response);
+    return result;
+}

@@ -11,22 +11,6 @@ A Logos module that provides wallet functionality, including balance fetching an
 
 ## Building
 
-### Using the compile script (recommended)
-
-```bash
-# Build with default settings (Release mode)
-./scripts/compile.sh
-
-# Build in Debug mode
-./scripts/compile.sh --debug
-
-# Clean build
-./scripts/compile.sh --clean
-
-# Specify Qt installation directory
-./scripts/compile.sh --qt-dir /path/to/Qt/6.x.x/macos
-```
-
 ### Manual build
 
 ```bash
