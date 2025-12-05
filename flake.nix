@@ -7,7 +7,7 @@
     logos-cpp-sdk.url = "github:logos-co/logos-cpp-sdk";
     logos-liblogos.url = "github:logos-co/logos-liblogos";
     go-wallet-sdk = {
-      url = "github:status-im/go-wallet-sdk/7f6efd25749edcef3670aeccc161fef67dada30a";
+      url = "github:status-im/go-wallet-sdk/7cc269bdb7c76d954de25201349bdd17975d44b6";
       flake = false;
     };
   };
