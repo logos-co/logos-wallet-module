@@ -3,17 +3,17 @@
     "go-wallet-sdk": {
       "flake": false,
       "locked": {
-        "lastModified": 1765213122,
-        "narHash": "sha256-C3wC+3jCKz/Brz9RHw7MmVrglgsD8/gcPocWGW1rFhs=",
+        "lastModified": 1765466462,
+        "narHash": "sha256-2bi2c7EOh/94/0MLcXqtaVBWOixXXYwmZ8CLdcOF99E=",
         "owner": "status-im",
         "repo": "go-wallet-sdk",
-        "rev": "ec80b3239050fa23c5b440a01e7dc476fee47a2c",
+        "rev": "0938a704506b0ff444378045d17be9e19e699d80",
         "type": "github"
       },
       "original": {
         "owner": "status-im",
         "repo": "go-wallet-sdk",
-        "rev": "ec80b3239050fa23c5b440a01e7dc476fee47a2c",
+        "rev": "0938a704506b0ff444378045d17be9e19e699d80",
         "type": "github"
       }
     },
