@@ -35,7 +35,7 @@ pkgs.stdenv.mkDerivation {
     
     cd vendor/go-wallet-sdk
     echo "Go version: $(go version)"
-    make shared-library
+    make static-library
     cd ../..
     
     mkdir -p lib
@@ -98,18 +98,12 @@ pkgs.stdenv.mkDerivation {
     fi
     
     # Copy the wallet library if it exists (check both lib/ and modules/ directories)
-    if [ -f lib/libgowalletsdk.dylib ]; then
-      cp lib/libgowalletsdk.dylib $out/lib/
-      echo "Copied libgowalletsdk.dylib from lib/ to $out/lib/"
-    elif [ -f modules/libgowalletsdk.dylib ]; then
-      cp modules/libgowalletsdk.dylib $out/lib/
-      echo "Copied libgowalletsdk.dylib from modules/ to $out/lib/"
-    elif [ -f lib/libgowalletsdk.so ]; then
-      cp lib/libgowalletsdk.so $out/lib/
-      echo "Copied libgowalletsdk.so from lib/ to $out/lib/"
-    elif [ -f modules/libgowalletsdk.so ]; then
-      cp modules/libgowalletsdk.so $out/lib/
-      echo "Copied libgowalletsdk.so from modules/ to $out/lib/"
+    if [ -f lib/libgowalletsdk.a ]; then
+      cp lib/libgowalletsdk.a $out/lib/
+      echo "Copied libgowalletsdk.a from lib/ to $out/lib/"
+    elif [ -f modules/libgowalletsdk.a ]; then
+      cp modules/libgowalletsdk.a $out/lib/
+      echo "Copied libgowalletsdk.a from modules/ to $out/lib/"
     else
       echo "Warning: No wallet library found in lib/ or modules/"
       echo "Contents of lib/:"
