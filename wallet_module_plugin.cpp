@@ -3,7 +3,7 @@
 #include <QVariantList>
 #include <QDateTime>
 
-WalletModulePlugin::WalletModulePlugin() : walletHandle(0)
+WalletModulePlugin::WalletModulePlugin()
 {
     qDebug() << "WalletModulePlugin: Initializing...";
 }
@@ -14,10 +14,10 @@ WalletModulePlugin::~WalletModulePlugin()
         delete logosAPI;
         logosAPI = nullptr;
     }
-    if (walletHandle != 0) {
-        GoWSK_ethclient_CloseClient(walletHandle);
-        walletHandle = 0;
+    foreach (unsigned long long handle, ethClientHandles.values()) {
+        GoWSK_ethclient_CloseClient(handle);
     }
+    ethClientHandles.clear();
 }
 
 void WalletModulePlugin::initLogos(LogosAPI* logosAPIInstance) {
@@ -37,35 +37,66 @@ void WalletModulePlugin::simple_callback(int callerRet, const char* msg, size_t 
     }
 }
 
-bool WalletModulePlugin::initWallet(const QString &configJson)
+bool WalletModulePlugin::ethClientInit(const QString &rpcUrl)
 {
     qDebug() << "WalletModulePlugin::initWallet called";
-    Q_UNUSED(configJson);
 
-    const char* url = "https://ethereum-rpc.publicnode.com";
-    char* err = nullptr;
-    walletHandle = GoWSK_ethclient_NewClient((char*)url, &err);
-    if (walletHandle == 0) {
-        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
-        if (err) GoWSK_FreeCString(err);
-        qWarning() << "WalletModulePlugin: Failed to create client:" << emsg;
+    if (ethClientHandles.contains(rpcUrl)) {
+        qWarning() << "WalletModulePlugin: Client already initialized:" << rpcUrl;
         return false;
     }
-    qDebug() << "WalletModulePlugin: Client created: handle=" << (qulonglong)walletHandle;
+
+    char* err = nullptr;
+    unsigned long long ethClientHandle = GoWSK_ethclient_NewClient((char*)rpcUrl.toUtf8().data(), &err);
+    if (ethClientHandle == 0) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin: Failed to create client:" << rpcUrl << emsg;
+        return false;
+    }
+    ethClientHandles[rpcUrl] = ethClientHandle;
     return true;
 }
 
-QString WalletModulePlugin::chainId(const QString &rpcUrl)
+bool WalletModulePlugin::ethClientClose(const QString &rpcUrl)
 {
-    qDebug() << "WalletModulePlugin::chainId" << rpcUrl;
-    Q_UNUSED(rpcUrl);
-    if (walletHandle == 0) {
-        if (!initWallet(QString())) {
-            return QString();
+    qDebug() << "WalletModulePlugin::ethClientClose" << rpcUrl;
+    if (!ethClientHandles.contains(rpcUrl)) {
+        qWarning() << "WalletModulePlugin: Client not initialized:" << rpcUrl;
+        return false;
+    }
+    unsigned long long ethClientHandle = ethClientHandles[rpcUrl];
+    GoWSK_ethclient_CloseClient(ethClientHandle);
+    ethClientHandles.remove(rpcUrl);
+    return true;
+}
+
+QStringList WalletModulePlugin::ethClientGetClients()
+{
+    qDebug() << "WalletModulePlugin::ethClientGetClients";
+    return ethClientHandles.keys();
+}
+
+unsigned long long WalletModulePlugin::getOrInitEthClient(const QString &rpcUrl)
+{
+    if (!ethClientHandles.contains(rpcUrl)) {
+        if (!ethClientInit(rpcUrl)) {
+            return 0;
         }
     }
+    return ethClientHandles[rpcUrl];
+}
+
+QString WalletModulePlugin::ethClientChainId(const QString &rpcUrl)
+{
+    qDebug() << "WalletModulePlugin::ethClientChainId" << rpcUrl;
+    unsigned long long ethClientHandle = getOrInitEthClient(rpcUrl);
+    if (ethClientHandle == 0) {
+        qWarning() << "WalletModulePlugin: Failed to get or initialize client:" << rpcUrl;
+        return QString();
+    }
     char* err = nullptr;
-    char* chain = GoWSK_ethclient_ChainID(walletHandle, &err);
+    char* chain = GoWSK_ethclient_ChainID(ethClientHandle, &err);
     if (chain == nullptr) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);
@@ -77,18 +108,17 @@ QString WalletModulePlugin::chainId(const QString &rpcUrl)
     return result;
 }
 
-QString WalletModulePlugin::getEthBalance(const QString &rpcUrl, const QString &address)
+QString WalletModulePlugin::ethClientGetBalance(const QString &rpcUrl, const QString &address)
 {
     qDebug() << "WalletModulePlugin::getEthBalance" << rpcUrl << address;
-    Q_UNUSED(rpcUrl);
-    if (walletHandle == 0) {
-        if (!initWallet(QString())) {
-            return QString();
-        }
+    unsigned long long ethClientHandle = getOrInitEthClient(rpcUrl);
+    if (ethClientHandle == 0) {
+        qWarning() << "WalletModulePlugin: Failed to get or initialize client:" << rpcUrl;
+        return QString();
     }
     QByteArray addrUtf8 = address.toUtf8();
     char* err = nullptr;
-    char* balance = GoWSK_ethclient_GetBalance(walletHandle, addrUtf8.data(), &err);
+    char* balance = GoWSK_ethclient_GetBalance(ethClientHandle, addrUtf8.data(), &err);
     if (balance == nullptr) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);
@@ -100,29 +130,19 @@ QString WalletModulePlugin::getEthBalance(const QString &rpcUrl, const QString &
     return result;
 }
 
-QString WalletModulePlugin::getErc20Balances(const QString &rpcUrl, const QString &address, const QStringList &tokenAddresses)
+QString WalletModulePlugin::ethClientRpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON)
 {
-    qDebug() << "WalletModulePlugin::getErc20Balances" << rpcUrl << address << tokenAddresses;
+    qDebug() << "WalletModulePlugin::ethClientRpcCall" << rpcUrl << method << paramsJSON;
     Q_UNUSED(rpcUrl);
-    Q_UNUSED(address);
-    Q_UNUSED(tokenAddresses);
-    // Not yet implemented in cshared; stub for future
-    return QString();
-}
-
-QString WalletModulePlugin::rpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON)
-{
-    qDebug() << "WalletModulePlugin::rpcCall" << rpcUrl << method << paramsJSON;
-    Q_UNUSED(rpcUrl);
-    if (walletHandle == 0) {
-        if (!initWallet(QString())) {
-            return QString();
-        }
+    unsigned long long ethClientHandle = getOrInitEthClient(rpcUrl);
+    if (ethClientHandle == 0) {
+        qWarning() << "WalletModulePlugin: Failed to get or initialize client:" << rpcUrl;
+        return QString();
     }
     QByteArray methodUtf8 = method.toUtf8();
     QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
     char* err = nullptr;
-    char* response = GoWSK_ethclient_RPCCall(walletHandle, methodUtf8.data(), paramsJsonUtf8.data(), &err);
+    char* response = GoWSK_ethclient_RPCCall(ethClientHandle, methodUtf8.data(), paramsJsonUtf8.data(), &err);
     if (response == nullptr) {
         QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
         if (err) GoWSK_FreeCString(err);

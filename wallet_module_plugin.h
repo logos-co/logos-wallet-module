@@ -24,11 +24,12 @@ public:
     Q_INVOKABLE void initLogos(LogosAPI* logosAPIInstance);
 
     // EthClient operations
-    Q_INVOKABLE bool initWallet(const QString &configJson) override;
-    Q_INVOKABLE QString rpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON) override;
-    Q_INVOKABLE QString chainId(const QString &rpcUrl) override;
-    Q_INVOKABLE QString getEthBalance(const QString &rpcUrl, const QString &address) override;
-    Q_INVOKABLE QString getErc20Balances(const QString &rpcUrl, const QString &address, const QStringList &tokenAddresses) override;
+    Q_INVOKABLE bool ethClientInit(const QString &rpcUrl) override;
+    Q_INVOKABLE bool ethClientClose(const QString &rpcUrl) override;
+    Q_INVOKABLE QStringList ethClientGetClients() override;
+    Q_INVOKABLE QString ethClientRpcCall(const QString &rpcUrl, const QString &method, const QString &paramsJSON) override;
+    Q_INVOKABLE QString ethClientChainId(const QString &rpcUrl) override;
+    Q_INVOKABLE QString ethClientGetBalance(const QString &rpcUrl, const QString &address) override;
 
     // TxGenerator operations
     Q_INVOKABLE QString txGeneratorTransferETH(const QString &paramsJSON) override;
@@ -51,9 +52,11 @@ signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
 
 private:
-    unsigned long long walletHandle;
+    QMap<QString, unsigned long long> ethClientHandles;
 
     static void simple_callback(int callerRet, const char* msg, size_t len, void* userData);
+
+    unsigned long long getOrInitEthClient(const QString &rpcUrl);
 };
 
 
