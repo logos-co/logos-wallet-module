@@ -133,3 +133,224 @@ QString WalletModulePlugin::rpcCall(const QString &rpcUrl, const QString &method
     GoWSK_FreeCString(response);
     return result;
 }
+
+QString WalletModulePlugin::transactionJsonToRlp(const QString &txJSON)
+{
+    qDebug() << "WalletModulePlugin::transactionJsonToRlp" << txJSON;
+    QByteArray txJsonUtf8 = txJSON.toUtf8();
+    char* err = nullptr;
+    char* rlpHex = GoWSK_transaction_JSONToRLP(txJsonUtf8.data(), &err);
+    if (rlpHex == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModuleTransaction: JSONToRLP error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(rlpHex);
+    GoWSK_FreeCString(rlpHex);
+    return result;
+}
+
+QString WalletModulePlugin::transactionRlpToJson(const QString &rlpHex)
+{
+    qDebug() << "WalletModulePlugin::transactionRlpToJson" << rlpHex;
+    QByteArray rlpHexUtf8 = rlpHex.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_transaction_RLPToJSON(rlpHexUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModuleTransaction: RLPToJSON error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::transactionGetHash(const QString &txJSON)
+{
+    qDebug() << "WalletModulePlugin::transactionGetHash" << txJSON;
+    QByteArray txJsonUtf8 = txJSON.toUtf8();
+    char* err = nullptr;
+    char* hash = GoWSK_transaction_GetHash(txJsonUtf8.data(), &err);
+    if (hash == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::transactionGetHash error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(hash);
+    GoWSK_FreeCString(hash);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorTransferETH(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorTransferETH" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_TransferETH(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorTransferETH error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorTransferERC20(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorTransferERC20" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_TransferERC20(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorTransferERC20 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorApproveERC20(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorApproveERC20" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_ApproveERC20(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorApproveERC20 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorTransferFromERC721(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorTransferFromERC721" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_TransferFromERC721(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorTransferFromERC721 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorSafeTransferFromERC721(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorSafeTransferFromERC721" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_SafeTransferFromERC721(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorSafeTransferFromERC721 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorApproveERC721(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorApproveERC721" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_ApproveERC721(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorApproveERC721 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorSetApprovalForAllERC721(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorSetApprovalForAllERC721" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_SetApprovalForAllERC721(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorSetApprovalForAllERC721 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorTransferERC1155(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorTransferERC1155" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_TransferERC1155(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorTransferERC1155 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorBatchTransferERC1155(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorBatchTransferERC1155" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_BatchTransferERC1155(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorBatchTransferERC1155 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
+
+QString WalletModulePlugin::txGeneratorSetApprovalForAllERC1155(const QString &paramsJSON)
+{
+    qDebug() << "WalletModulePlugin::txGeneratorSetApprovalForAllERC1155" << paramsJSON;
+    QByteArray paramsJsonUtf8 = paramsJSON.toUtf8();
+    char* err = nullptr;
+    char* txJson = GoWSK_txgenerator_SetApprovalForAllERC1155(paramsJsonUtf8.data(), &err);
+    if (txJson == nullptr) {
+        QString emsg = err ? QString::fromUtf8(err) : QString("unknown error");
+        if (err) GoWSK_FreeCString(err);
+        qWarning() << "WalletModulePlugin::txGeneratorSetApprovalForAllERC1155 error:" << emsg;
+        return QString();
+    }
+    QString result = QString::fromUtf8(txJson);
+    GoWSK_FreeCString(txJson);
+    return result;
+}
