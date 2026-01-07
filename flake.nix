@@ -51,7 +51,8 @@
           # Individual outputs
           logos-wallet-module-lib = lib;
           logos-wallet-module-include = include;
-          
+          lib = lib;
+
           # Default package (combined)
           default = combined;
         }

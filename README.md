@@ -35,6 +35,9 @@ nix build
 
 # Enter development shell
 nix develop
+
+# Build only the library (plugin + libwaku)
+nix build '.#lib'
 ```
 
 ## Module Structure
