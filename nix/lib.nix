@@ -1,5 +1,5 @@
 # Builds the logos-wallet-module library
-{ pkgs, common, src, goWalletSdk, logosSdk }:
+{ pkgs, common, src, logosSdk, goWalletSdkLib }:
 
 pkgs.stdenv.mkDerivation {
   pname = "${common.pname}-lib";
@@ -8,46 +8,17 @@ pkgs.stdenv.mkDerivation {
   inherit src;
   inherit (common) buildInputs cmakeFlags meta env;
   
-  # Add logosSdk to nativeBuildInputs for logos-cpp-generator
   nativeBuildInputs = common.nativeBuildInputs ++ [ logosSdk ];
   
   preConfigure = ''
     runHook prePreConfigure
     
-    # Create generated_code directory for generated files
     mkdir -p ./generated_code
     
-    # Set up vendor directory with go-wallet-sdk
-    echo "Setting up vendor directory with go-wallet-sdk"
-    mkdir -p vendor
-    cp -r ${goWalletSdk} vendor/go-wallet-sdk
-    chmod -R u+w vendor/go-wallet-sdk
-    
-    # Build wallet library from go-wallet-sdk
-    echo "Building wallet library from go-wallet-sdk"
-    
-    # Set up Go build environment
-    export HOME=$TMPDIR
-    export GOCACHE=$TMPDIR/go-cache
-    export GOPATH=$TMPDIR/go
-    export CGO_ENABLED=1
-    mkdir -p $GOCACHE $GOPATH
-    
-    cd vendor/go-wallet-sdk
-    echo "Go version: $(go version)"
-    make static-library
-    cd ../..
-    
+    # Use the pre-built Go library
     mkdir -p lib
-    echo "Checking what was built in go-wallet-sdk:"
-    ls -la vendor/go-wallet-sdk/build/ || echo "No build directory found"
-    cp vendor/go-wallet-sdk/build/libgowalletsdk.* lib/ 2>/dev/null || {
-      echo "Warning: No libgowalletsdk files found in vendor/go-wallet-sdk/build/"
-      echo "Contents of vendor/go-wallet-sdk/build/:"
-      ls -la vendor/go-wallet-sdk/build/ 2>/dev/null || echo "Build directory does not exist"
-    }
+    cp ${goWalletSdkLib}/lib/libgowalletsdk.* lib/
     echo "Wallet C library copied into lib/"
-    echo "Contents of lib/ after copy:"
     ls -la lib/
     
     # Run logos-cpp-generator with metadata.json and --general-only flag
@@ -62,13 +33,11 @@ pkgs.stdenv.mkDerivation {
     if [ -f "./generated_code/core_manager_api.h" ] || [ -f "./generated_code/logos_sdk.h" ]; then
       echo "Creating include directory and moving generated files..."
       mkdir -p ./generated_code/include
-      # Move generated header files to include directory
       for file in ./generated_code/*.h; do
         if [ -f "$file" ]; then
           mv "$file" ./generated_code/include/
         fi
       done
-      # Also copy generated .cpp files to include directory
       for file in ./generated_code/*.cpp; do
         if [ -f "$file" ]; then
           cp "$file" ./generated_code/include/
@@ -87,7 +56,6 @@ pkgs.stdenv.mkDerivation {
     runHook preInstall
     
     mkdir -p $out/lib
-    # Find and copy the built library file from the modules directory
     if [ -f modules/wallet_module_plugin.dylib ]; then
       cp modules/wallet_module_plugin.dylib $out/lib/
     elif [ -f modules/wallet_module_plugin.so ]; then
@@ -97,22 +65,6 @@ pkgs.stdenv.mkDerivation {
       exit 1
     fi
     
-    # Copy the wallet library if it exists (check both lib/ and modules/ directories)
-    if [ -f lib/libgowalletsdk.a ]; then
-      cp lib/libgowalletsdk.a $out/lib/
-      echo "Copied libgowalletsdk.a from lib/ to $out/lib/"
-    elif [ -f modules/libgowalletsdk.a ]; then
-      cp modules/libgowalletsdk.a $out/lib/
-      echo "Copied libgowalletsdk.a from modules/ to $out/lib/"
-    else
-      echo "Warning: No wallet library found in lib/ or modules/"
-      echo "Contents of lib/:"
-      ls -la lib/ 2>/dev/null || echo "lib/ directory does not exist"
-      echo "Contents of modules/:"
-      ls -la modules/ 2>/dev/null || echo "modules/ directory does not exist"
-    fi
-    
-    # Also install the generated include files
     if [ -d "./generated_code/include" ]; then
       mkdir -p $out/include
       cp -r ./generated_code/include/* $out/include/
