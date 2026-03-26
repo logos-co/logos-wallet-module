@@ -2,90 +2,30 @@
   description = "Logos Wallet Module - A wallet plugin for Logos";
 
   inputs = {
-    # Follow the same nixpkgs as logos-liblogos to ensure compatibility
-    nixpkgs.follows = "logos-liblogos/nixpkgs";
-    logos-cpp-sdk.url = "github:logos-co/logos-cpp-sdk";
-    logos-liblogos.url = "github:logos-co/logos-liblogos";
+    logos-module-builder.url = "github:logos-co/logos-module-builder";
+    nix-bundle-lgx.url = "github:logos-co/nix-bundle-lgx";
     go-wallet-sdk = {
       url = "github:status-im/go-wallet-sdk/f6c0924394c5bdf361bd16b739a80432e68291f5";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, logos-cpp-sdk, logos-liblogos, go-wallet-sdk }:
-    let
-      systems = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f {
-        pkgs = import nixpkgs { inherit system; };
-        logosSdk = logos-cpp-sdk.packages.${system}.default;
-        logosLiblogos = logos-liblogos.packages.${system}.default;
-        goWalletSdk = go-wallet-sdk;
-      });
-    in
-    {
-      packages = forAllSystems ({ pkgs, logosSdk, logosLiblogos, goWalletSdk }: 
-        let
-          # Common configuration
-          common = import ./nix/default.nix { 
-            inherit pkgs logosSdk logosLiblogos; 
-          };
-          src = ./.;
-          
-          # Build Go wallet library separately with proper dependency management
-          goWalletSdkLib = import ./nix/go-wallet-sdk-lib.nix {
-            inherit pkgs goWalletSdk;
-          };
-          
-          # Library package
-          lib = import ./nix/lib.nix { 
-            inherit pkgs common src logosSdk goWalletSdkLib;
-          };
-
-          # Include package (generated headers from plugin)
-          include = import ./nix/include.nix {
-            inherit pkgs common src lib logosSdk;
-          };
-
-          # Combined package
-          combined = pkgs.symlinkJoin {
-            name = "logos-wallet-module";
-            paths = [ lib include ];
-          };
-        in
-        {
-          # Individual outputs
-          logos-wallet-module-lib = lib;
-          logos-wallet-module-include = include;
-          lib = lib;
-
-          # Default package (combined)
-          default = combined;
-        }
-      );
-
-      devShells = forAllSystems ({ pkgs, logosSdk, logosLiblogos, goWalletSdk }: {
-        default = pkgs.mkShell {
-          nativeBuildInputs = [
-            pkgs.cmake
-            pkgs.ninja
-            pkgs.pkg-config
-            pkgs.go
-            pkgs.gnumake
-          ];
-          buildInputs = [
-            pkgs.qt6.qtbase
-            pkgs.qt6.qtremoteobjects
-          ];
-          
-          shellHook = ''
-            export LOGOS_CPP_SDK_ROOT="${logosSdk}"
-            export LOGOS_LIBLOGOS_ROOT="${logosLiblogos}"
-            echo "Logos Wallet Module development environment"
-            echo "LOGOS_CPP_SDK_ROOT: $LOGOS_CPP_SDK_ROOT"
-            echo "LOGOS_LIBLOGOS_ROOT: $LOGOS_LIBLOGOS_ROOT"
-          '';
-        };
-      });
+  outputs = inputs@{ logos-module-builder, ... }:
+    logos-module-builder.lib.mkLogosModule {
+      src = ./.;
+      configFile = ./metadata.json;
+      flakeInputs = inputs;
+      externalLibInputs = {
+        gowalletsdk = inputs.go-wallet-sdk;
+      };
+      # The builder copies external lib binaries to lib/ but not headers.
+      # Copy the generated CGo header alongside the static library.
+      preConfigure = ''
+        for store_path in /nix/store/*-logos-external-gowalletsdk-*/include; do
+          if [ -d "$store_path" ]; then
+            cp "$store_path"/*.h lib/ 2>/dev/null || true
+          fi
+        done
+      '';
     };
 }
-
