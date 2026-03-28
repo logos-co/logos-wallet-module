@@ -1,20 +1,22 @@
 cmake_minimum_required(VERSION 3.14)
-project(LogosWalletModulePlugin LANGUAGES CXX)
+project(LogosWalletModuleGrpc LANGUAGES CXX)
 
-# Include the Logos Module CMake helper
+# Include the Logos gRPC Module CMake helper
 if(DEFINED ENV{LOGOS_MODULE_BUILDER_ROOT})
-    include($ENV{LOGOS_MODULE_BUILDER_ROOT}/cmake/LogosModule.cmake)
+    include($ENV{LOGOS_MODULE_BUILDER_ROOT}/cmake/LogosGrpcModule.cmake)
+elseif(DEFINED ENV{LOGOS_GRPC_PLUGIN_ROOT})
+    include($ENV{LOGOS_GRPC_PLUGIN_ROOT}/share/logos-plugin-grpc/cmake/LogosGrpcModule.cmake)
 else()
-    message(FATAL_ERROR "LogosModule.cmake not found. Set LOGOS_MODULE_BUILDER_ROOT.")
+    message(FATAL_ERROR "LogosGrpcModule.cmake not found. Set LOGOS_MODULE_BUILDER_ROOT or LOGOS_GRPC_PLUGIN_ROOT.")
 endif()
 
-# Define the module
-logos_module(
+# Define the gRPC module
+logos_grpc_module(
     NAME wallet_module
     SOURCES
-        src/wallet_module_interface.h
-        src/wallet_module_plugin.h
-        src/wallet_module_plugin.cpp
+        src/wallet_service.h
+        src/wallet_service.cpp
+        src/main.cpp
     FIND_PACKAGES
         Threads
     LINK_LIBRARIES
@@ -29,13 +31,13 @@ find_library(LIBGOWALLETSDK
 )
 
 if(LIBGOWALLETSDK)
-    target_link_libraries(wallet_module_module_plugin PRIVATE ${LIBGOWALLETSDK})
+    target_link_libraries(wallet_module_grpc PRIVATE ${LIBGOWALLETSDK})
     if(APPLE)
-        target_link_options(wallet_module_module_plugin PRIVATE -Wl,-force_load ${LIBGOWALLETSDK})
-        target_link_libraries(wallet_module_module_plugin PUBLIC "-framework CoreFoundation")
-        target_link_libraries(wallet_module_module_plugin PUBLIC "-framework Security")
+        target_link_options(wallet_module_grpc PRIVATE -Wl,-force_load ${LIBGOWALLETSDK})
+        target_link_libraries(wallet_module_grpc PUBLIC "-framework CoreFoundation")
+        target_link_libraries(wallet_module_grpc PUBLIC "-framework Security")
     else()
-        target_link_options(wallet_module_module_plugin PRIVATE
+        target_link_options(wallet_module_grpc PRIVATE
             -Wl,--whole-archive ${LIBGOWALLETSDK} -Wl,--no-whole-archive)
     endif()
 endif()
@@ -43,6 +45,6 @@ endif()
 # Link Abseil if available
 find_package(absl QUIET)
 if(absl_FOUND)
-    target_link_libraries(wallet_module_module_plugin PRIVATE
+    target_link_libraries(wallet_module_grpc PRIVATE
         absl::base absl::strings absl::log absl::check)
 endif()
