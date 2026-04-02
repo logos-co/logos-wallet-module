@@ -26,6 +26,14 @@
             cp "$store_path"/*.h lib/ 2>/dev/null || true
           fi
         done
+
+        # Generate Qt glue from pure C++ impl header
+        logos-cpp-generator --from-header src/wallet_module_impl.h \
+          --backend qt \
+          --impl-class WalletModuleImpl \
+          --impl-header wallet_module_impl.h \
+          --metadata metadata.json \
+          --output-dir ./generated_code
       '';
     };
 }

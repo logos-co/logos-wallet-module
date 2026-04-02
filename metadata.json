@@ -4,6 +4,7 @@
   "description": "Wallet module using go-wallet-sdk C library",
   "author": "Logos Core Team",
   "type": "core",
+  "interface": "universal",
   "category": "wallet",
   "main": "wallet_module_plugin",
   "dependencies": [],
