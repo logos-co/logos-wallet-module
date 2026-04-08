@@ -18,14 +18,9 @@
       externalLibInputs = {
         gowalletsdk = inputs.go-wallet-sdk;
       };
-      # The builder copies external lib binaries to lib/ but not headers.
-      # Copy the generated CGo header alongside the static library.
-      preConfigure = ''
-        for store_path in /nix/store/*-logos-external-gowalletsdk-*/include; do
-          if [ -d "$store_path" ]; then
-            cp "$store_path"/*.h lib/ 2>/dev/null || true
-          fi
-        done
-      '';
+      tests = {
+        dir = ./tests;
+        mockCLibs = ["gowalletsdk"];
+      };
     };
 }

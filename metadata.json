@@ -4,6 +4,7 @@
   "description": "Wallet module using go-wallet-sdk C library",
   "author": "Logos Core Team",
   "type": "core",
+  "interface": "universal",
   "category": "wallet",
   "main": "wallet_module_plugin",
   "dependencies": [],
@@ -16,6 +17,7 @@
         "name": "gowalletsdk",
         "build_command": "make static-library",
         "go_build": true,
+        "vendor_hash": "sha256-sfJ1QW4J7b/K0XU5mkMzdFcJLAKeuZdPD7Tq+KfWw7g=",
         "output_pattern": "build/libgowalletsdk.*"
       }
     ],
