@@ -18,5 +18,9 @@
       externalLibInputs = {
         gowalletsdk = inputs.go-wallet-sdk;
       };
+      tests = {
+        dir = ./tests;
+        mockCLibs = ["gowalletsdk"];
+      };
     };
 }
