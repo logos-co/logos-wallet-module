@@ -8,43 +8,16 @@ else()
     message(FATAL_ERROR "LogosModule.cmake not found. Set LOGOS_MODULE_BUILDER_ROOT.")
 endif()
 
-# Ensure metadata.json is in the build directory so AUTOMOC embeds it
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/metadata.json ${CMAKE_CURRENT_BINARY_DIR}/metadata.json COPYONLY)
-
-# Define the module
 logos_module(
     NAME wallet_module
     SOURCES
         src/wallet_module_impl.h
         src/wallet_module_impl.cpp
-        generated_code/wallet_module_qt_glue.h
-        generated_code/wallet_module_dispatch.cpp
     FIND_PACKAGES
         Threads
     LINK_LIBRARIES
         Threads::Threads
-    INCLUDE_DIRS
-        ${CMAKE_CURRENT_SOURCE_DIR}/generated_code
 )
-
-# go-wallet-sdk static library (requires whole-archive for Go runtime initialization)
-find_library(LIBGOWALLETSDK
-    NAMES libgowalletsdk.a libgowalletsdk.lib
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    NO_DEFAULT_PATH
-)
-
-if(LIBGOWALLETSDK)
-    target_link_libraries(wallet_module_module_plugin PRIVATE ${LIBGOWALLETSDK})
-    if(APPLE)
-        target_link_options(wallet_module_module_plugin PRIVATE -Wl,-force_load ${LIBGOWALLETSDK})
-        target_link_libraries(wallet_module_module_plugin PUBLIC "-framework CoreFoundation")
-        target_link_libraries(wallet_module_module_plugin PUBLIC "-framework Security")
-    else()
-        target_link_options(wallet_module_module_plugin PRIVATE
-            -Wl,--whole-archive ${LIBGOWALLETSDK} -Wl,--no-whole-archive)
-    endif()
-endif()
 
 # Link Abseil if available
 find_package(absl QUIET)

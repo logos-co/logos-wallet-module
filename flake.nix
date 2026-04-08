@@ -18,22 +18,5 @@
       externalLibInputs = {
         gowalletsdk = inputs.go-wallet-sdk;
       };
-      # The builder copies external lib binaries to lib/ but not headers.
-      # Copy the generated CGo header alongside the static library.
-      preConfigure = ''
-        for store_path in /nix/store/*-logos-external-gowalletsdk-*/include; do
-          if [ -d "$store_path" ]; then
-            cp "$store_path"/*.h lib/ 2>/dev/null || true
-          fi
-        done
-
-        # Generate Qt glue from pure C++ impl header
-        logos-cpp-generator --from-header src/wallet_module_impl.h \
-          --backend qt \
-          --impl-class WalletModuleImpl \
-          --impl-header wallet_module_impl.h \
-          --metadata metadata.json \
-          --output-dir ./generated_code
-      '';
     };
 }
