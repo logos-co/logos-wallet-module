@@ -1,6 +1,6 @@
 {
   "name": "wallet_module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wallet module using go-wallet-sdk C library",
   "author": "Logos Core Team",
   "type": "core",
