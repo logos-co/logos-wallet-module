@@ -1,4 +1,4 @@
-name: "Running This Wallet Module Against logoscore"
+name: "Running This Wallet Module Against logosctl"
 output: wallet-module-runtime.md
 release: ""
 
@@ -7,35 +7,33 @@ intro: |
   [go-wallet-sdk](https://github.com/status-im/go-wallet-sdk) C library to provide
   Ethereum transaction construction and (RPC-backed) chain access. This doc-test
   exercises **this** wallet-module commit end-to-end through the headless
-  `logoscore` runtime:
+  `logosctl` runtime:
 
-  1. Build the `logoscore` CLI and the `lgpm` local package manager from their
-     published flakes. `logoscore` is the headless frontend for `logos-liblogos`,
-     so building it brings in the whole module-runtime stack (`logos_host`,
-     `liblogos_core`, the IPC layer).
+  1. Build the `logosctl` CLI from its published flake. `logosctl` is the
+     headless frontend for `logos-liblogos`, so building it brings in the whole
+     module-runtime stack (`logos_host`, `liblogos_core`, the IPC layer).
   2. Build **this** wallet module as an installable `.lgx` package straight from
      its own flake's `#lgx` output, **pinned to the commit under test** — so the
      module you run is built from exactly what is checked out here, not the latest
      published release.
-  3. Install the `.lgx` into a `./modules` directory with `lgpm`.
-  4. Start `logoscore` in daemon mode (`-D`), load `wallet_module`, introspect it
-     with `module-info`, and call several of its **offline** transaction helpers —
-     verifying the module actually runs and round-trips real values through the
-     go-wallet-sdk. (We deliberately avoid the RPC methods so the run needs no
-     network access and is reproducible in CI.)
+  3. Start a `logosctl` daemon and install the `.lgx` into its session.
+  4. Load `wallet_module`, introspect it with `module show`, and call several of
+     its **offline** transaction helpers — verifying the module actually runs and
+     round-trips real values through the go-wallet-sdk. (We deliberately avoid the
+     RPC methods so the run needs no network access and is reproducible in CI.)
 
   Because the module is built from the commit under test and then loaded and called
-  through a real `logoscore` daemon, a green run is real evidence that this change
+  through a real `logosctl` daemon, a green run is real evidence that this change
   keeps the wallet module loadable and callable.
 
-what_you_build: "This `wallet_module`, packaged as `.lgx`, installed with `lgpm`, and called through a `logoscore` daemon."
+what_you_build: "This `wallet_module`, packaged as `.lgx`, installed into a `logosctl` session, and called through its daemon."
 
 what_you_learn:
-  - How to build the `logoscore` runtime and the `lgpm` package manager from their flakes
+  - How to build the `logosctl` runtime from its flake
   - How a module's flake exposes a ready-to-install `.lgx` via its `#lgx` output
-  - How to install an `.lgx` into a modules directory with `lgpm`
-  - How to start the `logoscore` daemon, load a module, introspect it, and call its methods
-  - How to pass a JSON argument to a method with logoscore's `@file` parameter syntax
+  - How to install an `.lgx` into a `logosctl` session
+  - How to start the `logosctl` daemon, load a module, introspect it, and call its methods
+  - How to pass a JSON argument to a method with logosctl's `@file` parameter syntax
   - How to shut the daemon down and confirm it has exited
 
 prerequisites:
@@ -51,41 +49,29 @@ prerequisites:
   - "**A Linux or macOS machine.**"
 
 sections:
-  - title: "Build logoscore"
+  - title: "Build logosctl"
     step: true
     text: |
-      Build the `logoscore` CLI from its published flake. The result is symlinked to
-      `./logos/`. `logoscore` is the headless frontend for `logos-liblogos`, so this
+      Build the `logosctl` CLI from its published flake. The result is symlinked to
+      `./logos/`. `logosctl` is the headless frontend for `logos-liblogos`, so this
       one build brings in the whole module-runtime stack the daemon needs.
     steps:
       - title: "Build the CLI"
-        run: "nix build 'github:logos-co/logos-logoscore-cli' --out-link ./logos"
+        run: "nix build 'github:logos-co/logos-logoscore-cli#ctl' --out-link ./logos"
         code_block: |
-          nix build 'github:logos-co/logos-logoscore-cli' --out-link ./logos
-        check_file: "logos/bin/logoscore"
+          nix build 'github:logos-co/logos-logoscore-cli#ctl' --out-link ./logos
+        check_file: "logos/bin/logosctl"
         post_text: |
-          The build produces `logos/bin/logoscore` plus bundled runtime libraries
+          The build produces `logos/bin/logosctl` plus bundled runtime libraries
           and a `logos/modules/` directory containing the built-in
           `capability_module` (required for the auth handshake when loading
           modules).
 
-  - title: "Build the lgpm package manager"
-    step: true
-    text: |
-      `lgpm` installs `.lgx` packages into a modules directory and scans what is
-      installed. Build it from the `logos-package-manager` flake and link it as
-      `./lgpm`.
-    steps:
-      - title: "Build lgpm"
-        run: "nix build 'github:logos-co/logos-package-manager#cli' -o lgpm"
-        check_file: "lgpm/bin/lgpm"
-        post_text: "The executable is at `./lgpm/bin/lgpm`."
-
   - title: "Build and install this wallet module"
     step: true
     text: |
-      Build **this** wallet module's `.lgx` straight from its flake's `#lgx` output
-      and install it into a local `./modules` directory with `lgpm`. Every module
+      Build **this** wallet module's `.lgx` straight from its flake's `#lgx` output,
+      start a daemon, and install the package into its session. Every module
       built with
       [`logos-module-builder`](https://github.com/logos-co/logos-module-builder)
       exposes a ready-to-install `#lgx`.
@@ -107,44 +93,48 @@ sections:
         extra_run:
           run: "ls wallet-lgx/*.lgx"
 
-      - title: "Seed the modules directory with the bundled capability module"
+      - title: "Start the daemon"
         text: |
-          `wallet_module` is loaded through the host's capability layer, so the
-          modules directory also needs the `capability_module` that ships with
-          `logoscore`. Copy it across first.
-        run: |
-          mkdir -p modules
-          cp -RL ./logos/modules/. ./modules/
-        check_file: "modules/capability_module/manifest.json"
-
-      - title: "Install the .lgx with lgpm"
-        text: |
-          Install the freshly-built package into `./modules`. `wallet_module` is a
-          `core` module, so it goes to `--modules-dir`. The package is unsigned (a
-          local dev build), so we pass `--allow-unsigned`.
-        run: "./lgpm/bin/lgpm --modules-dir ./modules --allow-unsigned install --file wallet-lgx/*.lgx"
+          Start a `logosctl` daemon. Its session directory, `./session`, holds the
+          daemon's config, its installed modules and their data. `--detach`
+          returns once the daemon accepts commands.
+        # The bundled package downloader starts a storage node in $HOME; keep it
+        # out of the real one.
+        run: "mkdir -p home && HOME=\"$PWD/home\" ./logos/bin/logosctl --config-dir ./session daemon start --detach"
+        code_block: "logosctl daemon start --detach"
         expect_contains:
-          - "Installed to:"
+          - "Daemon started"
+
+      - title: "Install the .lgx"
+        text: |
+          A path ending in `.lgx` installs from disk, with no catalog involved. A
+          local build is unsigned, which the session's default policy accepts with
+          a warning. `-y` confirms, since there is no terminal to ask on.
+        run: "./logos/bin/logosctl --config-dir ./session install wallet-lgx/*.lgx -y"
+        code_block: "logosctl install wallet-lgx/*.lgx -y"
+        expect_contains:
+          - '"installed":["wallet_module"]'
 
       - title: "Confirm the install"
-        text: "Scan the directory and confirm the module landed:"
-        run: "./lgpm/bin/lgpm --modules-dir ./modules list"
+        text: "List the session's packages and confirm the module landed:"
+        run: "./logos/bin/logosctl --config-dir ./session package ls"
+        code_block: "logosctl package ls"
         expect_contains:
           - "wallet_module"
-        check_file: "modules/wallet_module/manifest.json"
+        check_file: "session/modules/wallet_module/manifest.json"
 
-  - title: "Run the daemon and call the module"
+  - title: "Call the module"
     step: true
     text: |
-      Start `logoscore` in daemon mode pointed at `./modules`, then use the client
-      subcommands to load `wallet_module`, introspect it, and call several of its
-      offline transaction helpers. Daemon output is captured in `logs.txt`.
+      Load `wallet_module`, introspect it, and call several of its offline
+      transaction helpers with the client subcommands. The daemon logs to
+      `session/logs/daemon.log`.
     steps:
       - title: "Write a sample transaction"
         text: |
           The transaction helpers take a JSON-encoded transaction. Write a minimal
           legacy (EIP-155, chainId 1) transaction to `tx.json`; we pass it to the
-          methods below with logoscore's `@file` argument syntax.
+          methods below with logosctl's `@file` argument syntax.
         file:
           path: tx.json
           content: |
@@ -162,57 +152,45 @@ sections:
               "s": "0x1"
             }
 
-      - title: "Start the daemon"
-        text: |
-          Start logoscore in daemon mode in the background, capturing output to
-          `logs.txt`:
-        run: "sh -c './logos/bin/logoscore -D -m ./modules > logs.txt 2>&1 &'"
-        code_block: "logoscore -D -m ./modules > logs.txt &"
-        post_text: |
-          The `-D` flag starts the daemon. The client subcommands below connect to
-          this running process via the config written under `~/.logoscore/`.
-
-      - run: "sleep 3"
-
       - title: "Inspect the startup log"
         text: "Review the daemon's startup output:"
-        run: "cat logs.txt"
+        run: "cat session/logs/daemon.log"
 
       - title: "Check daemon status"
         text: "Verify the daemon is running:"
-        run: "./logos/bin/logoscore status"
-        code_block: "logoscore status"
+        run: "./logos/bin/logosctl --config-dir ./session daemon status"
+        code_block: "logosctl daemon status"
 
       - title: "List discovered modules"
         text: "`wallet_module` should be visible in the scan directory:"
-        run: "./logos/bin/logoscore list-modules"
-        code_block: "logoscore list-modules"
+        run: "./logos/bin/logosctl --config-dir ./session module ls"
+        code_block: "logosctl module ls"
         expect_contains:
           - "wallet_module"
 
       - title: "Load the module"
         text: "Load `wallet_module` into the running daemon:"
-        run: "./logos/bin/logoscore load-module wallet_module"
-        code_block: "logoscore load-module wallet_module"
+        run: "./logos/bin/logosctl --config-dir ./session module load wallet_module"
+        code_block: "logosctl module load wallet_module"
         expect_contains:
           - "wallet_module"
 
       - title: "Confirm the module is loaded"
         text: |
-          Re-run `status`; the module that was `not_loaded` before now reports
+          Re-run `daemon status`; the module that was `not_loaded` before now reports
           `loaded`:
-        run: "./logos/bin/logoscore status"
-        code_block: "logoscore status"
+        run: "./logos/bin/logosctl --config-dir ./session daemon status"
+        code_block: "logosctl daemon status"
         expect_contains:
           - "wallet_module"
           - '"status":"loaded"'
 
-      - title: "Introspect the module with module-info"
+      - title: "Introspect the module with module show"
         text: |
-          `module-info` lists the `Q_INVOKABLE` methods the module exposes — the
+          `module show` lists the `Q_INVOKABLE` methods the module exposes — the
           same methods you can `call`:
-        run: "./logos/bin/logoscore module-info wallet_module"
-        code_block: "logoscore module-info wallet_module"
+        run: "./logos/bin/logosctl --config-dir ./session module show wallet_module"
+        code_block: "logosctl module show wallet_module"
         expect_contains:
           - "wallet_module"
           - "transactionGetHash"
@@ -221,10 +199,10 @@ sections:
       - title: "Hash a transaction"
         text: |
           `transactionGetHash` computes the hash of the transaction in `tx.json`.
-          The `@tx.json` argument tells logoscore to load the file's contents as the
+          The `@tx.json` argument tells logosctl to load the file's contents as the
           argument. The result is a real `0x…` keccak hash from the go-wallet-sdk:
-        run: "./logos/bin/logoscore call wallet_module transactionGetHash @tx.json"
-        code_block: "logoscore call wallet_module transactionGetHash @tx.json"
+        run: "./logos/bin/logosctl --config-dir ./session call wallet_module transactionGetHash @tx.json"
+        code_block: "logosctl call wallet_module transactionGetHash @tx.json"
         expect_contains:
           - '"result":"0x'
 
@@ -232,8 +210,8 @@ sections:
         text: |
           `transactionJsonToRlp` serialises the transaction to its RLP hex
           encoding:
-        run: "./logos/bin/logoscore call wallet_module transactionJsonToRlp @tx.json"
-        code_block: "logoscore call wallet_module transactionJsonToRlp @tx.json"
+        run: "./logos/bin/logosctl --config-dir ./session call wallet_module transactionJsonToRlp @tx.json"
+        code_block: "logosctl call wallet_module transactionJsonToRlp @tx.json"
         expect_contains:
           - '"result":"0x'
 
@@ -253,25 +231,23 @@ sections:
               "gasPrice": "1000000000",
               "chainID": "1"
             }
-        run: "./logos/bin/logoscore call wallet_module txGeneratorTransferETH @transfer.json"
-        code_block: "logoscore call wallet_module txGeneratorTransferETH @transfer.json"
+        run: "./logos/bin/logosctl --config-dir ./session call wallet_module txGeneratorTransferETH @transfer.json"
+        code_block: "logosctl call wallet_module txGeneratorTransferETH @transfer.json"
         expect_contains:
           - '"result"'
 
       - title: "Stop the daemon"
         text: "Shut the daemon down cleanly:"
-        run: "./logos/bin/logoscore stop"
-        code_block: "logoscore stop"
+        run: "./logos/bin/logosctl --config-dir ./session daemon stop"
+        code_block: "logosctl daemon stop"
         post_text: |
           The daemon removes its state file and exits.
-
-      - run: "sleep 2"
 
       - title: "Confirm the daemon has stopped"
         text: |
           With no daemon running, the client reports `not_running` and exits
           non-zero, so we add `|| true` to let the doc-test assert on the output:
-        run: "./logos/bin/logoscore status || true"
-        code_block: "logoscore status"
+        run: "./logos/bin/logosctl --config-dir ./session daemon status || true"
+        code_block: "logosctl daemon status"
         expect_contains:
           - '"status":"not_running"'

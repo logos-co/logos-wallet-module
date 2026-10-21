@@ -4,7 +4,7 @@
 #
 # There are two specs:
 #   wallet-module-runtime.test.yaml — packages this module as an .lgx, installs
-#       it with lgpm, and drives it through a headless logoscore daemon.
+#       it into a logosctl session, and drives it through the daemon.
 #   wallet-ui-app.test.yaml         — builds the logos-wallet-ui standalone app
 #       against this module commit and drives its QML UI headlessly, capturing
 #       screenshots into outputs/images/.
