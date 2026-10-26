@@ -1,7 +1,7 @@
 # Driving the Wallet UI Against This Module
 
 The companion to the [headless runtime doc-test](wallet-module-runtime.md):
-instead of calling `wallet_module` through the `logoscore` daemon, this one
+instead of calling `wallet_module` through the `logosctl` daemon, this one
 drives the real **[`logos-wallet-ui`](https://github.com/logos-co/logos-wallet-ui)**
 desktop app against **this** commit of the module.
 
@@ -118,7 +118,7 @@ actually working, not just that the window rendered.
 ### 3.1 Launch and drive the app
 
 ```bash
-nix run ./logos-wallet-ui --override-input wallet_module github:logos-co/logos-wallet-module/28e5f85a3ca5c6b5ff3a0c332195b0961dca6c3c
+nix run ./logos-wallet-ui --override-input wallet_module github:logos-co/logos-wallet-module
 ```
 
 ![EthClient management section visible](images/wallet-ui-launch.png)

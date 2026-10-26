@@ -4,7 +4,7 @@ release: ""
 
 intro: |
   The companion to the [headless runtime doc-test](wallet-module-runtime.md):
-  instead of calling `wallet_module` through the `logoscore` daemon, this one
+  instead of calling `wallet_module` through the `logosctl` daemon, this one
   drives the real **[`logos-wallet-ui`](https://github.com/logos-co/logos-wallet-ui)**
   desktop app against **this** commit of the module.
 
